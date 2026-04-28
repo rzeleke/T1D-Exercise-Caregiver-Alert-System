@@ -171,6 +171,18 @@ elif page == "History":
             })
         st.dataframe(reading_data, width='stretch')
 
+# Trend charts
+        st.markdown("---")
+        st.subheader("📈 Glucose Trends")
+
+        import reporting
+        fig1 = reporting.plot_glucose_trend()
+        fig2 = reporting.plot_zone_distribution()
+
+        if fig1 is not None:
+            st.pyplot(fig1)
+        if fig2 is not None:
+            st.pyplot(fig2)
 
 # ── Settings Page ───────────────────────────────────────────────
 elif page == "Settings":
@@ -201,3 +213,16 @@ elif page == "Settings":
         st.success(f"Settings saved! Alerts will fire {alert_lead} minutes before each session.")
         if has_cgm:
             st.info(f"CGM Activity Mode reminder will be included in alerts for {child_name}.")
+
+# Trend charts
+        st.markdown("---")
+        st.subheader("📈 Glucose Trends")
+
+        import reporting
+        fig1 = reporting.plot_glucose_trend()
+        fig2 = reporting.plot_zone_distribution()
+
+        if fig1 is not None:
+            st.pyplot(fig1)
+        if fig2 is not None:
+            st.pyplot(fig2)
