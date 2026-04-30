@@ -88,7 +88,6 @@ def plot_zone_distribution():
     return fig
 
 if __name__ == '__main__':
-    import streamlit as st
     storage.create_tables()
 
     fig1 = plot_glucose_trend()
