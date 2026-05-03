@@ -117,10 +117,15 @@ elif page == "Check-In":
         # Send caregiver alert if needed
         if result['alert_caregiver']:
             st.warning("⚠️ Caregiver has been notified.")
+            # Load settings to get child name and CGM status
+            settings = storage.get_settings()
             notification.send_sms(
-                f"T1D Glucose Alert: Riot's pre-exercise glucose is {glucose} mg/dL. "
+                f"T1D Glucose Alert: {settings['child_name']}'s pre-exercise glucose is {glucose} mg/dL. "
                 f"Classification: {result['classification']}. "
-                f"Recommended action: {result['recommendation']}"
+                f"Recommended action: {result['recommendation']}."
+                + (f" Reminder: Set {settings['child_name']}'s CGM to Activity Mode "
+                   f"to reduce hypoglycemia during and/or after exercise."
+                   if settings['has_cgm'] else "")
             )
 
         # Save reading to database
