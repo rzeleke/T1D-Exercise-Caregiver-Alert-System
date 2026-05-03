@@ -211,6 +211,7 @@ elif page == "Settings":
     )
 
     if st.button("💾 Save Settings"):
+        storage.save_settings(child_name, has_cgm, alert_lead)
         st.success(f"Settings saved! Alerts will fire {alert_lead} minutes before each session.")
         if has_cgm:
             st.info(f"CGM Activity Mode reminder will be included in alerts for {child_name}.")

@@ -173,6 +173,58 @@ def get_glucose_readings():
     sql_connection.close()
     return rows
 
+def save_settings(child_name, has_cgm, alert_lead_minutes):
+    sql_connection = sqlite3.connect(DB_NAME)
+    cursor = sql_connection.cursor()
+
+    # Create settings table if it doesn't exist
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS settings (
+            id INTEGER PRIMARY KEY,
+            child_name TEXT,
+            has_cgm INTEGER,
+            alert_lead_minutes INTEGER
+        )
+    ''')
+
+    # Delete existing settings and insert new ones
+    cursor.execute('DELETE FROM settings')
+    cursor.execute('''
+        INSERT INTO settings (id, child_name, has_cgm, alert_lead_minutes)
+        VALUES (1, ?, ?, ?)
+    ''', (child_name, int(has_cgm), alert_lead_minutes))
+
+    sql_connection.commit()
+    sql_connection.close()
+
+def get_settings():
+    sql_connection = sqlite3.connect(DB_NAME)
+    cursor = sql_connection.cursor()
+
+    # Create table if not exists
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS settings (
+            id INTEGER PRIMARY KEY,
+            child_name TEXT,
+            has_cgm INTEGER,
+            alert_lead_minutes INTEGER
+        )
+    ''')
+
+    cursor.execute('SELECT child_name, has_cgm, alert_lead_minutes FROM settings WHERE id = 1')
+    result = cursor.fetchone()
+    sql_connection.close()
+
+    # Return defaults if no settings saved yet
+    if result is None:
+        return {'child_name': 'Riot', 'has_cgm': False, 'alert_lead_minutes': 30}
+
+    return {
+        'child_name': result[0],
+        'has_cgm': bool(result[1]),
+        'alert_lead_minutes': result[2]
+    }
+
 if __name__ == '__main__':
     # Step 1 - create tables
     create_tables()

@@ -4,26 +4,29 @@ from datetime import datetime
 import storage
 import notification
 
-def check_and_send_alerts():
+def check_and_send_alerts():    
+    
+    # Load current settings from database
+    settings = storage.get_settings()
+    child_name = settings['child_name']
+    has_cgm    = settings['has_cgm']
     # Get all sessions that need an alert sent
     pending_alerts = storage.get_pending_alerts()
 
     for session in pending_alerts:
-        session_id  = session[0]
-        title       = session[1]
-        start_time  = session[2]
+        session_id = session[0]
+        title      = session[1]
+        start_time = session[2]
 
         print(f"Firing alert for: {title} at {start_time}")
 
-        # Send the SMS alert
         result = notification.send_exercise_alert(
-            child_name='Riot',
+            child_name=child_name,
             exercise_title=title,
             start_time=start_time,
-            has_cgm=False
+            has_cgm=has_cgm        # now reads from database
         )
 
-        # Log the alert in the database
         if result:
             storage.save_alert(session_id, 'SMS')
             print(f"Alert logged for session {session_id}")
