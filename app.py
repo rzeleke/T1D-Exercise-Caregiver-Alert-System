@@ -190,16 +190,19 @@ elif page == "Settings":
     st.title("⚙️ Settings")
     st.write("Configure your alert preferences.")
 
+    # Load saved settings from database
+    saved = storage.get_settings()
+
     st.subheader("Patient Information")
-    child_name = st.text_input("Child/Patient name", value="Riot")
-    has_cgm = st.checkbox("Uses a CGM device (Dexcom, Libre, etc.)")
+    child_name = st.text_input("Child/Patient name", value=saved['child_name'])
+    has_cgm = st.checkbox("Uses a CGM device (Dexcom, Libre, etc.)", value=saved['has_cgm'])
 
     st.subheader("Alert Settings")
     alert_lead = st.slider(
         "Alert lead time (minutes before exercise)",
         min_value=10,
         max_value=60,
-        value=30,
+        value=saved['alert_lead_minutes'],
         step=5
     )
 
