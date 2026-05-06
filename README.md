@@ -20,8 +20,8 @@ As a result, patients and caregivers often react to hypoglycemia rather than pre
 
 ## Quick Start
 ```bash
-git clone https://github.com/rzeleke/T1D-Alert.git
-cd T1D-Alert
+git clone https://github.com/rzeleke/T1D-Exercise-Caregiver-Alert-System.git
+cd T1D-Exercise-Caregiver-Alert-System
 python -m venv venv
 venv\Scripts\activate
 pip install -r requirements.txt
