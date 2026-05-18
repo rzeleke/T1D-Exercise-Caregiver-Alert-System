@@ -25,7 +25,7 @@ page = st.sidebar.radio(
 )
 
 # ── Schedule Page ───────────────────────────────────────────────
-# ── Schedule Page ───────────────────────────────────────────────
+
 if page == "Schedule":
     st.title("📅 Exercise Schedule")
 
@@ -42,29 +42,9 @@ if page == "Schedule":
         credentials = google_calendar.load_credentials()
 
         if credentials is None:
-            # Not connected - show login button
             st.info("Click the button below to connect your Google Calendar.")
-
-            if st.button("🔗 Connect Google Calendar"):
-                auth_url, state = google_calendar.get_auth_url()
-                st.session_state['oauth_state'] = state
-                st.markdown(f"[Click here to authorize with Google]({auth_url})")
-                st.warning("After authorizing, copy the code from the URL and paste it below.")
-                
-            # Handle OAuth callback code
-            auth_code = st.text_input("Paste authorization code here:")
-            if auth_code and st.button("✅ Submit Code"):
-                try:
-                    state = st.session_state.get('oauth_state', '')
-                    credentials = google_calendar.get_credentials_from_code(
-                        auth_code, state
-                    )
-                    st.success("Google Calendar connected successfully!")
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"Error connecting: {e}")
+            st.warning("⚠️ Note: Google authentication opens a browser window. This works on local installation only. For cloud version use the Upload .ics File tab.")
         else:
-            # Already connected - show sync button
             st.success("✅ Google Calendar is connected.")
 
             if st.button("🔄 Sync Exercise Sessions Now"):
@@ -110,7 +90,7 @@ if page == "Schedule":
                     os.remove('token.json')
                 st.success("Google Calendar disconnected.")
                 st.rerun()
-
+                
     # ── Tab 2: Manual Upload ─────────────────────────────────────
     with tab2:
         st.write("Upload your Google Calendar export to import exercise sessions.")
