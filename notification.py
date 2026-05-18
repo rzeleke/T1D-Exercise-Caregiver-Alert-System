@@ -3,14 +3,23 @@ from twilio.rest import Client
 from dotenv import load_dotenv
 import os
 
-# Load environment variables from .env file
+# Load environment variables from .env file (local development)
 load_dotenv()
 
-# Read credentials from environment
-ACCOUNT_SID    = os.getenv('TWILIO_ACCOUNT_SID')
-AUTH_TOKEN     = os.getenv('TWILIO_AUTH_TOKEN')
-FROM_NUMBER    = os.getenv('TWILIO_FROM_NUMBER')
-CAREGIVER_PHONE = os.getenv('CAREGIVER_PHONE')
+# Try loading from Streamlit secrets first (cloud deployment)
+# Fall back to .env file for local development
+try:
+    import streamlit as st
+    ACCOUNT_SID     = st.secrets["TWILIO_ACCOUNT_SID"]
+    AUTH_TOKEN      = st.secrets["TWILIO_AUTH_TOKEN"]
+    FROM_NUMBER     = st.secrets["TWILIO_FROM_NUMBER"]
+    CAREGIVER_PHONE = st.secrets["CAREGIVER_PHONE"]
+except Exception:
+    # Running locally - use .env file
+    ACCOUNT_SID     = os.getenv('TWILIO_ACCOUNT_SID')
+    AUTH_TOKEN      = os.getenv('TWILIO_AUTH_TOKEN')
+    FROM_NUMBER     = os.getenv('TWILIO_FROM_NUMBER')
+    CAREGIVER_PHONE = os.getenv('CAREGIVER_PHONE')
 
 def send_sms(message):
     try:
