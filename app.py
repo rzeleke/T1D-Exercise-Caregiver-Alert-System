@@ -6,6 +6,7 @@ import csv_import
 import rule_engine
 import notification
 import reporting
+import os
 
 # Configure the Streamlit page
 st.set_page_config(
@@ -24,63 +25,137 @@ page = st.sidebar.radio(
 )
 
 # ── Schedule Page ───────────────────────────────────────────────
+# ── Schedule Page ───────────────────────────────────────────────
 if page == "Schedule":
     st.title("📅 Exercise Schedule")
-    st.write("Upload your Google Calendar export to import exercise sessions.")
 
-    # File upload widget - must be inside the if page block
-    uploaded_file = st.file_uploader(
-        "Upload your calendar file (.ics)",
-        type=["ics"]
-    )
+    # Tab selection - Google Calendar or manual upload
+    tab1, tab2 = st.tabs(["🔗 Connect Google Calendar", "📁 Upload .ics File"])
 
-    if uploaded_file is not None:
-        # Save the uploaded file temporarily to disk
-        with open("temp_calendar.ics", "wb") as f:
-            f.write(uploaded_file.getbuffer())
+    # ── Tab 1: Google Calendar OAuth ────────────────────────────
+    with tab1:
+        st.write("Connect your Google Calendar to automatically sync exercise sessions.")
 
-        # Parse the calendar file
-        all_events, exercise_events = csv_import.get_exercise_events("temp_calendar.ics")
+        import google_calendar
 
-        # Show summary
-        st.success(f"Found {len(all_events)} total events — {len(exercise_events)} exercise sessions detected.")
+        # Check if already connected
+        credentials = google_calendar.load_credentials()
 
-        if len(exercise_events) == 0:
-            st.warning("No exercise events found. Try adjusting your keywords in Settings.")
+        if credentials is None:
+            # Not connected - show login button
+            st.info("Click the button below to connect your Google Calendar.")
+
+            if st.button("🔗 Connect Google Calendar"):
+                auth_url, state = google_calendar.get_auth_url()
+                st.session_state['oauth_state'] = state
+                st.markdown(f"[Click here to authorize with Google]({auth_url})")
+                st.warning("After authorizing, copy the code from the URL and paste it below.")
+                
+            # Handle OAuth callback code
+            auth_code = st.text_input("Paste authorization code here:")
+            if auth_code and st.button("✅ Submit Code"):
+                try:
+                    state = st.session_state.get('oauth_state', '')
+                    credentials = google_calendar.get_credentials_from_code(
+                        auth_code, state
+                    )
+                    st.success("Google Calendar connected successfully!")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Error connecting: {e}")
         else:
-            # Show preview table
-            st.subheader("Preview — Exercise Sessions Found")
-            preview_data = []
-            for event in exercise_events:
-                preview_data.append({
-                    "Title": event.get("title", ""),
-                    "Start": str(event.get("start", "")),
-                    "End": str(event.get("end", ""))
-                })
-            st.dataframe(preview_data, width="stretch")
+            # Already connected - show sync button
+            st.success("✅ Google Calendar is connected.")
 
-            # Confirm import button
-            if st.button("✅ Confirm Import"):
-                storage.create_tables()
-                saved = 0
-                skipped = 0
+            if st.button("🔄 Sync Exercise Sessions Now"):
+                with st.spinner("Fetching events from Google Calendar..."):
+                    try:
+                        all_events, exercise_events = google_calendar.get_exercise_events_from_google(credentials)
 
+                        st.success(f"Found {len(all_events)} total events — {len(exercise_events)} exercise sessions detected.")
+
+                        if len(exercise_events) == 0:
+                            st.warning("No exercise events found. Try adjusting your keywords in Settings.")
+                        else:
+                            st.subheader("Preview — Exercise Sessions Found")
+                            preview_data = []
+                            for event in exercise_events:
+                                preview_data.append({
+                                    "Title": event.get("title", ""),
+                                    "Start": str(event.get("start", "")),
+                                    "End": str(event.get("end", ""))
+                                })
+                            st.dataframe(preview_data, width="stretch")
+
+                            if st.button("✅ Confirm Import"):
+                                storage.create_tables()
+                                saved = 0
+                                skipped = 0
+                                for event in exercise_events:
+                                    start = event.get("start")
+                                    end = event.get("end")
+                                    title = event.get("title", "")
+                                    alert_time = start - timedelta(minutes=30)
+                                    result = storage.save_session(title, start, end, alert_time)
+                                    if result:
+                                        saved += 1
+                                    else:
+                                        skipped += 1
+                                st.success(f"Import complete! {saved} sessions saved, {skipped} duplicates skipped.")
+                    except Exception as e:
+                        st.error(f"Error syncing calendar: {e}")
+
+            if st.button("🔓 Disconnect Google Calendar"):
+                if os.path.exists('token.json'):
+                    os.remove('token.json')
+                st.success("Google Calendar disconnected.")
+                st.rerun()
+
+    # ── Tab 2: Manual Upload ─────────────────────────────────────
+    with tab2:
+        st.write("Upload your Google Calendar export to import exercise sessions.")
+
+        uploaded_file = st.file_uploader(
+            "Upload your calendar file (.ics)",
+            type=["ics"]
+        )
+
+        if uploaded_file is not None:
+            with open("temp_calendar.ics", "wb") as f:
+                f.write(uploaded_file.getbuffer())
+
+            all_events, exercise_events = csv_import.get_exercise_events("temp_calendar.ics")
+
+            st.success(f"Found {len(all_events)} total events — {len(exercise_events)} exercise sessions detected.")
+
+            if len(exercise_events) == 0:
+                st.warning("No exercise events found. Try adjusting your keywords in Settings.")
+            else:
+                st.subheader("Preview — Exercise Sessions Found")
+                preview_data = []
                 for event in exercise_events:
-                    start = event.get("start")
-                    end = event.get("end")
-                    title = event.get("title", "")
+                    preview_data.append({
+                        "Title": event.get("title", ""),
+                        "Start": str(event.get("start", "")),
+                        "End": str(event.get("end", ""))
+                    })
+                st.dataframe(preview_data, width="stretch")
 
-                    # Calculate alert time 30 minutes before session
-                    alert_time = start - timedelta(minutes=30)
-
-                    result = storage.save_session(title, start, end, alert_time)
-                    if result:
-                        saved += 1
-                    else:
-                        skipped += 1
-
-                st.success(f"Import complete! {saved} sessions saved, {skipped} duplicates skipped.")
-
+                if st.button("✅ Confirm Import"):
+                    storage.create_tables()
+                    saved = 0
+                    skipped = 0
+                    for event in exercise_events:
+                        start = event.get("start")
+                        end = event.get("end")
+                        title = event.get("title", "")
+                        alert_time = start - timedelta(minutes=30)
+                        result = storage.save_session(title, start, end, alert_time)
+                        if result:
+                            saved += 1
+                        else:
+                            skipped += 1
+                    st.success(f"Import complete! {saved} sessions saved, {skipped} duplicates skipped.")
 
 # ── Check-In Page ───────────────────────────────────────────────
 elif page == "Check-In":
